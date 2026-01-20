@@ -1,0 +1,16 @@
+venv/
+.venv/
+env/
+ENV/
+
+__pycache__/
+
+.env
+.env.*
+*.env
+
+.vscode/
+.idea/
+*.iml
+
+*.pt
