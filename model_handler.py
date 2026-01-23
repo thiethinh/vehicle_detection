@@ -4,7 +4,7 @@ from ultralytics import YOLO
 name_detect = ['bus', 'car', 'motorbike', 'truck']
 
 # Load model
-model = YOLO('11s_retrain.pt')
+model = YOLO('model/11s_retrain.pt')
 all_names = model.names
 
 # Lấy ID của các lớp đó

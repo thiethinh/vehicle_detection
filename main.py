@@ -18,7 +18,7 @@ if __name__ == "__main__":
     try:
         root.mainloop()
     finally:
-        print("Đóng ứng dụng...")
+        print("Đóng ứng dụng")
         vp.is_running.clear()
         if vp.cap is not None:
             vp.cap.release()

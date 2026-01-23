@@ -3,6 +3,8 @@ import time
 import threading
 import queue
 import numpy as np
+import torch
+
 from model_handler import model, ids_to_detect, all_names, name_detect
 
 # Khởi tạo Queue toàn cục
@@ -34,6 +36,12 @@ def reset_counters_logic():
     with fps_lock:
         actual_fps_value = 0.0
 
+def get_device_and_precision():
+    if torch.cuda.is_available():
+        return "cuda", True
+    else:
+        return "cpu", False
+
 def video_processing_loop():
     global counts_by_class, counted_ids, track_history, cap, actual_fps_value
     processing_prev_time = time.time()
@@ -58,9 +66,11 @@ def video_processing_loop():
             time.sleep(0.1)
             continue
 
+        divice,use_haft = get_device_and_precision()
+
         results_generator = model.track(
             frame, classes=ids_to_detect, persist=True,
-            device='cuda', imgsz=640, half=True, verbose=False
+            device=divice, imgsz=640, half=use_haft, verbose=False
         )
 
         results = results_generator[0]

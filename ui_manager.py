@@ -31,8 +31,8 @@ class VehicleApp:
         self.count_vars = {name: tk.StringVar(value=f"{name.capitalize()}: 0") for name in name_detect}
 
         ttk.Label(self.sidebar, text="Bảng Điều Khiển", font=("Helvetica", 18, "bold")).pack(pady=10)
-        ttk.Button(self.sidebar, text="📁 Chọn Video", command=self.open_file_dialog).pack(fill='x', padx=20, pady=5)
-        self.direction_btn = ttk.Button(self.sidebar, text="🔄 Đang khởi tạo...", command=self.toggle_direction)
+        ttk.Button(self.sidebar, text="Chọn Video", command=self.open_file_dialog).pack(fill='x', padx=20, pady=5)
+        self.direction_btn = ttk.Button(self.sidebar, text="Đang khởi tạo", command=self.toggle_direction)
         self.direction_btn.pack(fill='x', padx=20, pady=10)
 
         ttk.Label(self.sidebar, textvariable=self.fps_var, font=("Helvetica", 14, "bold"), foreground="green").pack(
