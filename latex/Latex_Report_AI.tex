@@ -1,0 +1,380 @@
+\documentclass[conference]{IEEEtran}
+% Cấu hình gói ngôn ngữ và font chữ
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese]{babel}
+
+% Các lib cho toán học, hình ảnh, bảng biểu
+\usepackage{ }
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs} % Để tạo bảng đẹp hơn
+\usepackage{float}
+\usepackage{hyperref}
+
+% Định nghĩa lại tên các phần tự động của IEEEtran sang tiếng Việt
+\renewcommand{\IEEEkeywordsname}{Từ khóa}
+
+% Hàm giả lập hình ảnh (để code chạy được ngay cả khi bạn chưa có file ảnh)
+% Khi có ảnh thật, bạn hãy thay lệnh \placeholderimage bằng \includegraphics
+\newcommand{\placeholderimage}[2]{
+    \begin{figure}[htbp]
+        \centering
+        \framebox{
+            \begin{minipage}{0.9\linewidth}
+                \centering
+                \vspace{1.5cm}
+                \textbf{VỊ TRÍ CHÈN ẢNH}\\
+                #1
+                \vspace{1.5cm}
+            \end{minipage}
+        }
+        \caption{#2}
+        \label{#1}
+    \end{figure}
+}
+    
+\begin{document}
+
+\title{Ứng dụng trí tuệ nhân tạo trong việc nhận diện và phân loại phương tiện giao thông từ Camera }
+
+\author{
+\IEEEauthorblockN{Nguyễn Thiết Hinh, Nguyễn Hoàng Thái, Tô Tấn Phát}
+\IEEEauthorblockA{\textit{Trường ĐH Nông Lâm TP.HCM} \\
+\textit{Khoa Công nghệ thông tin}\\
+Email: \{23130110, 23130296, 23130232\}@st.hcmuaf.edu.vn}
+}
+
+\maketitle
+% ------ Đánh dấu số trang ----
+\thispagestyle{plain} 
+\pagestyle{plain}
+
+
+\begin{abstract}
+Nghiên cứu đề xuất giải pháp nhận diện và phân loại phương tiện thời gian thực sử dụng thuật toán YOLOv11 phục vụ Hệ thống Giao thông Thông minh (ITS \cite{ITS}). Mô hình được huấn luyện trên 4 nhóm phương tiện chính: xe máy, ô tô, xe buýt và xe tải. Kết quả thực nghiệm cho thấy hệ thống đạt chỉ số mAP@0.5\cite{mAP} ấn tượng (97.3\%), đảm bảo độ chính xác và tốc độ xử lý vượt trội trong môi trường giao thông phức tạp. Đây là cơ sở tin cậy cho việc tự động hóa điều tiết tín hiệu và phân tích mật độ lưu lượng đô thị.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Nhận diện phương tiện, Phân loại phương tiện, YOLOv11, Hệ thống giao thông thông minh, Xử lý thời gian thực, Thị giác máy tính.
+\end{IEEEkeywords}
+
+\section*{I. GIỚI THIỆU ( INTRODUCTION)}
+Trong bối cảnh đô thị hóa diễn ra nhanh chóng, áp lực lên hạ tầng giao thông tại các đô thị lớn ngày càng gia tăng. Tình trạng ùn tắc và mất an toàn giao thông trở thành những vấn đề cấp bách, gây ảnh hưởng trực tiếp đến hiệu quả kinh tế và chất lượng cuộc sống. Theo nhiều nghiên cứu thực tế, các phương pháp giám sát truyền thống thường tốn kém về nhân lực và gặp nhiều hạn chế về khả năng mở rộng quy mô. Do đó, việc xây dựng và phát triển Hệ thống Giao thông Thông minh (ITS) đóng vai trò then chốt trong chiến lược phát triển đô thị bền vững.
+
+Trong những năm gần đây, cùng với sự bùng nổ của trí tuệ nhân tạo và lĩnh vực thị giác máy tính, các phương pháp phân tích video tự động đã được ứng dụng rộng rãi nhằm hỗ trợ quản lý giao thông. Trong đó, bài toán nhận diện và phân loại phương tiện được xem là nhiệm vụ nền tảng nhất, cho phép các cơ quan chức năng chủ động nắm bắt lưu lượng, mật độ dòng xe và đưa ra các quyết định điều tiết tín hiệu đèn hoặc quy hoạch hạ tầng một cách khoa học.
+
+Tuy nhiên, việc xây dựng mô hình nhận diện phương tiện trong môi trường thực tế đặt ra nhiều thách thức lớn. Trước hết, hệ thống đòi hỏi khả năng xử lý thời gian thực (Real-time processing) với độ trễ cực thấp để đảm bảo tính ứng dụng. Bên cạnh đó, dữ liệu video từ camera thường bị ảnh hưởng bởi các yếu tố môi trường như ánh sáng thay đổi, thời tiết xấu và hiện tượng các phương tiện che khuất lẫn nhau (occlusion). Ngoài ra, sự đa dạng về kích thước và đặc trưng hình học giữa các nhóm phương tiện (xe máy, ô tô, xe tải) làm hạn chế hiệu quả của các mô hình phát hiện đối tượng truyền thống.
+
+Xuất phát từ những vấn đề trên, bài báo này tập trung nghiên cứu và xây dựng hệ thống nhận diện, phân loại phương tiện giao thông dựa trên thuật toán YOLOv11—phiên bản tiên tiến nhất trong họ mô hình YOLO. Mục tiêu của nghiên cứu là đánh giá khả năng cân bằng giữa tốc độ và độ chính xác của mô hình trên dữ liệu thực tế, bao gồm các loại xe phổ biến như xe máy, ô tô con, xe buýt và xe tải. Thông qua quá trình thực nghiệm, nghiên cứu hướng đến việc xác định cấu hình tối ưu, đồng thời làm rõ vai trò của các độ đo đánh giá như mAP (mean Average Precision) và FPS \cite{FPS} trong việc triển khai các ứng dụng giám sát giao thông thông minh.
+
+\section*{II. CÔNG TRÌNH LIÊN QUAN (RELATED WORK)}
+
+Bài toán nhận diện và phân loại phương tiện giao thông (Vehicle Detection and Classification) đã được nghiên cứu rộng rãi trong lĩnh vực thị giác máy tính, đặc biệt là trong các hệ thống giao thông thông minh (ITS), do tác động trực tiếp đến khả năng quản lý lưu lượng và an toàn đường bộ. Các phương pháp truyền thống thường mô hình hóa bài toán này dựa trên việc trích xuất các đặc trưng thủ công như Haar-like, HOG kết hợp với các bộ phân lớp kinh điển như SVM hoặc Decision Tree. Trong đó, các kỹ thuật trừ nền (background subtraction) thường được sử dụng như hướng tiếp cận cơ sở nhờ tính đơn giản và chi phí tính toán thấp.
+
+Tuy nhiên, dữ liệu video giao thông trong thực tế thường chịu ảnh hưởng mạnh bởi các yếu tố ngoại cảnh như sự thay đổi ánh sáng, điều kiện thời tiết khắc nghiệt và hiện tượng che khuất (occlusion), khiến các mô hình truyền thống dễ gặp sai số. Một hướng xử lý phổ biến trước đây là áp dụng các bộ lọc tiền xử lý dữ liệu nhằm cải thiện chất lượng hình ảnh, giúp mô hình học được các ranh giới đối tượng rõ ràng hơn.
+
+Gần đây, các phương pháp dựa trên mạng nơ-ron tích chập (CNN) đã cho hiệu năng vượt trội nhờ khả năng tự động học các biểu diễn đặc trưng phi tuyến và xử lý tốt các tương tác không gian phức tạp. Trong nhóm này, các mô hình phát hiện đối tượng một giai đoạn (one-stage detectors)\cite{one-stage detectors} như dòng thuật toán YOLO (You Only Look Once) được đánh giá cao nhờ cơ chế dự đoán trực tiếp tọa độ hộp bao và xác suất lớp, giúp tối ưu hóa đáng kể tốc độ huấn luyện và xử lý.
+
+Song song đó, các phiên bản cải tiến liên tục được ra đời nhằm cân bằng giữa độ chính xác và tài nguyên tính toán. YOLOv11 là một kiến trúc hiện đại nổi bật, sử dụng các cơ chế chú ý (attention mechanism)\cite{attention mechanism} theo từng bước để chọn lọc các đặc trưng quan trọng của phương tiện, từ đó nâng cao hiệu năng nhận diện đồng thời hỗ trợ khả năng xử lý thời gian thực. Tuy nhiên, trong bối cảnh giám sát giao thông, việc lựa chọn mô hình cần cân nhắc mục tiêu thực tiễn; do đó các độ đo như độ chính xác trung bình (mAP) và tốc độ khung hình (FPS) thường được ưu tiên hàng đầu để đảm bảo hệ thống hoạt động ổn định và không bỏ sót các phương tiện trong dòng lưu thông mật độ cao.
+
+\section*{III. CƠ SỞ LÝ THUYẾT (Theoretical Background)}
+
+\subsection{Bài toán Nhận diện và Phân loại phương tiện giao thông}
+Nhận diện và phân loại phương tiện đề cập đến quá trình xác định sự hiện diện, vị trí thông qua hộp bao (bounding box) và loại của các phương tiện trong một khung hình video. Trong lĩnh vực giao thông thông minh (ITS), bài toán này đóng vai trò nền tảng để thu thập dữ liệu về lưu lượng và mật độ giao thông nhằm tối ưu hóa hạ tầng đô thị. 
+
+Từ góc độ kỹ thuật, đây là bài toán phát hiện đối tượng (Object Detection) đa lớp, nơi mô hình phải đồng thời thực hiện nhiệm vụ xác định tọa độ không gian và gán nhãn cho các thực thể như xe máy, ô tô, xe buýt và xe tải. Đặc điểm của bài toán này đòi hỏi sự chính xác cao trong môi trường động và khả năng phân biệt các đối tượng có kích thước cũng như đặc trưng hình học khác biệt đáng kể.
+
+\subsection{Thuật toán YOLOv11 và bài toán xử lý thời gian thực}
+Thách thức lớn nhất trong giám sát giao thông tự động là khả năng xử lý thời gian thực (Real-time processing) trên luồng dữ liệu video có độ phân giải cao nhằm đáp ứng các phản hồi điều khiển tức thời. YOLOv11 (You Only Look Once version 11) được lựa chọn để giải quyết vấn đề này nhờ cơ chế xử lý một giai đoạn (one-stage), cho phép dự đoán trực tiếp các hộp bao và xác suất lớp chỉ qua một lần quét mạng nơ-ron duy nhất.
+
+Cấu trúc của YOLOv11 tập trung vào việc tối ưu hóa sự cân bằng giữa độ chính xác (mAP) và tốc độ khung hình (FPS). Kiến trúc này bao gồm ba thành phần chính:
+\begin{itemize}
+    \item \textbf{Backbone}: Chịu trách nhiệm trích xuất các đặc trưng đa quy mô từ hình ảnh đầu vào thông qua các lớp tích chập tiên tiến.
+    \item \textbf{Neck}: Thực hiện việc kết hợp và tinh chỉnh các đặc trưng để tăng cường khả năng nhận diện đối tượng ở nhiều kích thước khác nhau.
+    \item \textbf{Head}: Đưa ra dự đoán cuối cùng về tọa độ hộp bao và xác suất phân loại lớp cho phương tiện.
+\end{itemize}
+Việc ứng dụng YOLOv11 giúp hệ thống hoạt động ổn định trong các điều kiện môi trường phức tạp như thiếu sáng hoặc mật độ phương tiện dày đặc, đảm bảo dữ liệu đầu ra tin cậy cho các bài toán phân tích mật độ giao thông.
+
+\section*{IV. PHƯƠNG PHÁP NGHIÊN CỨU (METHODOLOGY)}
+
+\subsection*{A. Tổng quan quy trình thực hiện đồ án}
+Nội dung đồ án được xây dựng theo quy trình chuẩn của một bài toán thị giác máy tính sử dụng học sâu. Quy trình này bao gồm các bước chính:
+\begin{itemize}
+    \item \textbf{Tiền xử lý dữ liệu}: Chuẩn hóa kích thước ảnh đầu vào về $640 \times 640$ và áp dụng kỹ thuật letterbox \cite{Letterbox} để đảm bảo tính nhất quán của dữ liệu mà không làm biến dạng hình học của đối tượng.
+    \item \textbf{Trích xuất đặc trưng (Backbone)}: Sử dụng mạng nơ-ron CNN cải tiến với các module C3k2 và C2PSA \cite{C3k2 & C2PSA} để trích xuất các đặc trưng từ tầng nông đến tầng sâu.
+    \item \textbf{Kết hợp đặc trưng đa tỉ lệ (Neck)}: Sử dụng cơ chế Feature Pyramid Network (FPN) và Path Aggregation Network (PAN) giúp mô hình phát hiện tốt cả các đối tượng nhỏ và lớn.
+    \item \textbf{Dự đoán và hậu xử lý}: Áp dụng cơ chế anchor-free \cite{Anchor-free} để dự đoán trực tiếp tọa độ hộp giới hạn và thực hiện hậu xử lý tối giản để giảm độ trễ suy luận.
+\end{itemize}
+
+\subsection*{B. Mô tả dữ liệu (Dataset Description)}
+Bộ dữ liệu được sử dụng trong nghiên cứu này là \textbf{vehicle detection} (phiên bản v9i.yolov11) được thu thập từ nền tảng Roboflow:
+\begin{itemize}
+    \item \textbf{Quy mô và cấu trúc}: Dữ liệu được chia thành 3 tập riêng biệt bao gồm tập huấn luyện (train), tập kiểm định (valid) và tập kiểm thử (test).
+    \item \textbf{Lớp đối tượng}: Tập trung vào 4 lớp phương tiện giao thông chính bao gồm: bus, car, motorbike và truck.
+    \item \textbf{Định dạng nhãn}: Sử dụng định dạng văn bản (.txt) chứa mã lớp và các tọa độ tâm, chiều rộng, chiều cao đã được chuẩn hóa trong khoảng $[0, 1]$.
+\end{itemize}
+
+\subsection*{C. Lý do lựa chọn bộ dữ liệu}
+Bộ dữ liệu được lựa chọn dựa trên các tiêu chí sau:
+\begin{enumerate}
+    \item \textbf{Tính thực tiễn}: Chứa các mẫu ảnh từ camera giám sát thực tế, giúp giải quyết sự khác biệt về miền dữ liệu (domain gap) mà các mô hình gốc thường gặp phải.
+    \item \textbf{Tối ưu hiệu suất}: Dữ liệu được định dạng chuẩn cho dòng YOLO11, giúp khai thác tối đa khả năng học đặc trưng của mô hình.
+    \item \textbf{Phù hợp ứng dụng Real-time}: Kích thước dữ liệu phù hợp để triển khai trên các thiết bị Edge AI có tài nguyên hạn chế.
+    \item \textbf{Khả năng đánh giá}: Cung cấp môi trường kiểm thử khách quan để so sánh hiệu quả giữa mô hình pre-trained và mô hình sau khi finetune.
+\end{enumerate}
+
+\subsection*{D. Phân tích dữ liệu khám phá (EDA)}
+Thông qua quá trình thực nghiệm và phân tích, các đặc điểm cốt lõi của dữ liệu được xác định:
+\begin{itemize}
+    \item \textbf{Khoảng cách tri thức}: Đánh giá trên mô hình gốc cho thấy kết quả mAP@0.5 cực thấp (dưới $1\%$), xác nhận tập huấn luyện ban đầu của mô hình không tương thích với dữ liệu thực tế.
+    \item \textbf{Độ chính xác sau huấn luyện}: Sau khi finetune, chỉ số Precision và Recall đạt xấp xỉ $92\%$, chứng minh mô hình đã học được ranh giới quyết định chính xác trên tập dữ liệu mới.
+    \item \textbf{Chất lượng hộp dự đoán}: Chỉ số mAP@0.5 đạt $95.7\%$, cho thấy các bounding box dự đoán có độ tin cậy rất cao.
+    \item \textbf{Khả năng nhận diện vật thể nhỏ}: Cơ chế Neck cải tiến giúp mô hình bắt được các phương tiện ở xa với độ chính xác vượt trội so với các phiên bản cũ.
+\end{itemize}
+
+\begin{table}[htbp]
+\centering
+\caption{Mô tả các đặc trưng và định dạng dữ liệu trong bộ dữ liệu Vehicle Detection}
+\label{tab:feature_description}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{|c|l|p{4.5cm}|}
+\hline
+\textbf{STT} & \textbf{Tên đặc trưng/Lớp} & \textbf{Mô tả chi tiết} \\ \hline
+1 & \texttt{Class Index} & Chỉ số lớp của đối tượng (0: Bus, 1: Car, 2: Motorbike, 3: Truck). \\ \hline
+2 & \texttt{x\_center} & Tọa độ tâm của hộp giới hạn (Bounding Box) theo trục X, đã được chuẩn hóa trong khoảng $[0, 1]$. \\ \hline
+3 & \texttt{y\_center} & Tọa độ tâm của hộp giới hạn theo trục Y, đã được chuẩn hóa trong khoảng $[0, 1]$. \\ \hline
+4 & \texttt{width} & Chiều rộng của hộp giới hạn, được tính bằng tỷ lệ so với tổng chiều rộng ảnh ($[0, 1]$). \\ \hline
+5 & \texttt{height} & Chiều cao của hộp giới hạn, được tính bằng tỷ lệ so với tổng chiều cao ảnh ($[0, 1]$). \\ \hline
+6 & \texttt{Bus} & Lớp đối tượng đại diện cho các loại xe khách, xe buýt trong dòng giao thông. \\ \hline
+7 & \texttt{Car} & Lớp đối tượng đại diện cho xe con, xe ô tô cá nhân (chiếm tỷ trọng lớn nhất). \\ \hline
+8 & \texttt{Motorbike} & Lớp đối tượng đại diện cho xe máy và các phương tiện hai bánh có động cơ. \\ \hline
+9 & \texttt{Truck} & Lớp đối tượng đại diện cho xe tải, xe vận chuyển hàng hóa hạng nặng. \\ \hline
+10 & \texttt{Confidence} & (Chỉ có ở đầu ra) Độ tin cậy của mô hình về việc tồn tại đối tượng và tính chính xác của lớp dự đoán. \\ \hline
+\end{tabular}
+\end{table}
+\subsection*{E. Tiền xử lý dữ liệu (Data Preprocessing)}
+Quá trình chuẩn bị dữ liệu cho mô hình YOLO11s bao gồm các bước chuẩn hóa nghiêm ngặt để đảm bảo mạng nơ-ron học được các đặc trưng ổn định:
+\begin{enumerate}
+    \item \textbf{Chuẩn hóa kích thước (Resizing)}: Toàn bộ ảnh đầu vào được đưa về kích thước cố định $640 \times 640$ pixels. Kỹ thuật \textbf{Letterbox} được sử dụng để thêm các khoảng đệm (padding), giúp giữ nguyên tỷ lệ khung hình gốc và tránh làm biến dạng hình học của đối tượng.
+    \item \textbf{Chuẩn hóa giá trị Pixel}: Chuyển đổi giá trị cường độ sáng của điểm ảnh từ khoảng $[0, 255]$ về khoảng $[0, 1]$, giúp quá trình hội tụ của hàm mất mát diễn ra nhanh hơn.
+    \item \textbf{Định dạng nhãn (Labeling)}: Chuyển đổi nhãn về định dạng YOLO chuẩn. Mỗi đối tượng trong ảnh được biểu diễn bằng một dòng trong file \texttt{.txt} bao gồm: mã lớp (Class ID) và tọa độ hộp giới hạn ($x_{center}, y_{center}, width, height$) đã được chuẩn hóa.
+    \item \textbf{Tăng cường dữ liệu (Augmentation)}: Áp dụng các kỹ thuật như Mosaic, xoay ảnh và điều chỉnh độ sáng để tăng khả năng tổng quát hóa cho mô hình đối với các vật thể bị che khuất hoặc có kích thước nhỏ.
+\end{enumerate}
+
+\subsection*{F. Pipeline xử lý dữ liệu}
+Quy trình xử lý dữ liệu được thiết kế theo dạng đường ống (pipeline) khép kín nhằm đảm bảo tính nhất quán giữa các bước tiền xử lý và huấn luyện:
+\begin{itemize}
+    \item \textbf{Pipeline huấn luyện}: Thực hiện tuần tự các bước từ nạp dữ liệu thô, tăng cường dữ liệu (Augmentation), trích xuất đặc trưng qua Backbone và lan truyền ngược để cập nhật trọng số.
+    \item \textbf{Pipeline suy luận}: Dữ liệu từ camera thực tế được đưa qua bộ tiền xử lý Letterbox, chạy suy luận qua mô hình và thực hiện hậu xử lý (NMS) để đưa ra kết quả phát hiện cuối cùng.
+\end{itemize}
+Việc sử dụng pipeline giúp tránh hiện tượng rò rỉ dữ liệu (data leakage) và tối ưu hóa tốc độ xử lý cho các ứng dụng thời gian thực.
+
+\subsection*{G. Chiến lược chia dữ liệu và huấn luyện mô hình}
+Để đảm bảo tính khách quan trong đánh giá, dữ liệu được chia thành ba tập riêng biệt: huấn luyện (70%), xác thực (15%) và kiểm thử (15%).
+\begin{itemize}
+    \item \textbf{Phương pháp chia}: Sử dụng \textit{stratified sampling \cite{Stratified Sampling}} để giữ nguyên tỷ lệ phân bố của các lớp phương tiện (bus, car, motorbike, truck) trong các tập dữ liệu.
+    \item \textbf{Chiến lược huấn luyện}: Sử dụng phương pháp Transfer Learning\cite{Transfer Learning} với trọng số pre-trained \texttt{yolo11s.pt}. Cơ chế dừng sớm (\textit{early stopping}) được áp dụng dựa trên hiệu suất của tập xác thực để tránh hiện tượng quá khớp (overfitting) và tiết kiệm tài nguyên tính toán.
+\end{itemize}
+
+\subsection*{H. Mô hình hóa (Modeling)}
+Mô hình YOLO11s được xây dựng dựa trên kiến trúc mạng nơ-ron sâu tối ưu cho việc hồi quy vị trí và phân loại đối tượng đồng thời:
+\begin{enumerate}
+    \item \textbf{Cơ chế chú ý (C2PSA)}: Giúp mô hình tập trung vào các đặc trưng quan trọng của phương tiện và loại bỏ nhiễu từ bối cảnh môi trường giao thông.
+    \item \textbf{Kiến trúc Neck (FPN + PAN)\cite{FPN & PAN}}: Kết hợp đặc trưng đa tỷ lệ giúp bảo toàn thông tin không gian, hỗ trợ phát hiện các đối tượng có kích thước đa dạng. Công thức kết hợp đặc trưng cơ bản:
+    \begin{equation}
+        P_{out} = \text{Concat}(P_{top\_down}, P_{bottom\_up})
+    \end{equation}
+    \item \textbf{Cơ chế Anchor-free}: Dự đoán trực tiếp tọa độ hộp giới hạn từ các điểm trên feature map, giúp mô hình linh hoạt hơn với các hình dạng phương tiện khác nhau mà không cần thiết kế anchor box thủ công.
+\end{enumerate}
+
+\subsection*{I. Độ đo đánh giá (Evaluation Metrics)}
+Để đánh giá hiệu năng mô hình, chúng tôi sử dụng các chỉ số dựa trên Ma trận nhầm lẫn (Confusion Matrix) và chỉ số IoU \cite{IoU}:
+\begin{itemize}
+    \item \textbf{Intersection over Union (IoU)}: Đo độ khớp giữa hộp dự đoán ($B_p$) và hộp thực tế ($B_g$):
+    \begin{equation}
+        IoU = \frac{Area(B_p \cap B_g)}{Area(B_p \cup B_g)}
+    \end{equation}
+    \item \textbf{Precision (Độ chính xác)}: Tỷ lệ dự đoán đúng trên tổng số dự đoán dương tính.
+    \item \textbf{Recall (Độ phủ)}: Khả năng phát hiện không bỏ sót các đối tượng thực tế.
+    \item \textbf{mAP@0.5}: Độ chính xác trung bình trung bình tại ngưỡng $IoU = 0.5$, là chỉ số chính để đánh giá sức mạnh tổng thể của mô hình.
+    \item \textbf{mAP@0.5:0.95}: Chỉ số đánh giá độ chính xác của hộp giới hạn trên nhiều ngưỡng IoU khắt khe hơn.
+\end{itemize}
+\section*{V. THỰC NGHIỆM VÀ KẾT QUẢ (EXPERIMENTS \& RESULTS)}
+
+\subsection*{A. Thiết lập thực nghiệm}
+Quá trình thực nghiệm được tiến hành nhằm đánh giá khả năng thích nghi của mô hình YOLO11s từ một mô hình tổng quát sang một bài toán cụ thể về giám sát giao thông. Các thiết lập chính bao gồm:
+\begin{itemize}
+    \item \textbf{Chia dữ liệu}: Bộ dữ liệu được phân chia theo tỷ lệ chuẩn: 70\% cho huấn luyện (train), 15\% cho xác thực (validation) và 15\% cho kiểm thử (test). Phương pháp \textit{stratified sampling\cite{stratified sampling} } được áp dụng để đảm bảo sự cân bằng về số lượng instance của các lớp xe (bus, car, motorbike, truck) trên mỗi tập.
+    \item \textbf{Kịch bản đánh giá}: Chúng tôi thực hiện so sánh hai trạng thái:
+    \begin{enumerate}
+        \item \textbf{Baseline}: Sử dụng trọng số mặc định từ Ultralytics (\texttt{yolo11s.pt}) để chạy trực tiếp trên tập test mà không qua huấn luyện lại.
+        \item \textbf{Finetuned}: Mô hình đã được huấn luyện lại thông qua quá trình Transfer Learning trên tập dữ liệu phương tiện giao thông mục tiêu.
+    \end{enumerate}
+    \item \textbf{Chỉ số đánh giá}: Hiệu năng được định lượng qua 4 thông số cốt lõi: Precision, Recall, mAP@0.5 và mAP@0.5:0.95. Trong đó, mAP@0.5:0.95 đóng vai trò đánh giá độ chính xác về vị trí hộp giới hạn.
+\end{itemize}
+
+\subsection*{B. Kết quả chi tiết}
+Bảng II trình bày số liệu thực nghiệm thu được sau khi chạy đánh giá trên tập kiểm thử (Test Set).
+
+\begin{table}[htbp]
+\centering
+\caption{KẾT QUẢ THỰC NGHIỆM SO SÁNH TRƯỚC VÀ SAU KHI FINETUNE}
+\label{tab:results_yolo}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Trạng thái mô hình} & \textbf{Precision} & \textbf{Recall} & \textbf{mAP@0.5} & \textbf{mAP@0.5:0.95} \\ \hline
+YOLO11s (Baseline) & 0.0063 & 0.0088 & 0.0032 & 0.0018 \\ \hline
+\textbf{YOLO11s (Finetuned)} & \textbf{0.9199} & \textbf{0.9201} & \textbf{0.9568} & \textbf{0.7556} \\ \hline
+\end{tabular}
+\end{table}
+
+
+\subsection*{C. Phân tích hiệu năng qua biểu đồ}
+
+Việc đánh giá mô hình được thực hiện chi tiết qua các đường cong đặc tính sau:
+
+% 1. Hình ảnh Precision-Recall Curve
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.45\textwidth]{iamge_finetune/BoxPR_curve.png}
+    \caption{Đường cong Precision-Recall: Mô hình đạt mAP@0.5 ấn tượng ở mức 0.973 cho tất cả các lớp.}
+    \label{fig:pr_curve}
+\end{figure}
+
+
+
+% 2. Hình ảnh F1-Confidence Curve
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.45\textwidth]{iamge_finetune/BoxF1_curve.png}
+    \caption{Biểu đồ F1-Confidence: Giá trị F1 tối ưu đạt 0.93 tại ngưỡng tin cậy 0.509.}
+    \label{fig:f1_curve}
+\end{figure}
+
+% 3. Hình ảnh Precision & Recall Curves
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}{0.24\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{iamge_finetune/BoxP_curve.png}
+        \caption{Precision-Confidence.}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.24\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{iamge_finetune/BoxR_curve.png}
+        \caption{Recall-Confidence.}
+    \end{minipage}
+\end{figure}
+
+\subsection*{D. Nhận xét kết quả}
+Dựa trên các biểu đồ thực nghiệm, chúng tôi rút ra các kết luận sau:
+\begin{enumerate}
+    \item \textbf{Độ tin cậy của mô hình}: Đường cong Precision-Confidence cho thấy mô hình đạt độ chính xác tuyệt đối (1.00) khi ngưỡng tin cậy đạt 0.955, khẳng định khả năng loại bỏ báo động giả cực tốt.
+    \item \textbf{Khả năng bao phủ}: Đường cong Recall-Confidence đạt mức 0.99 ở ngưỡng thấp, cho thấy hệ thống gần như không bỏ sót phương tiện nào trong dòng giao thông.
+    \item \textbf{Sự ổn định}: Biểu đồ PR-Curve (Hình \ref{fig:pr_curve}) cho thấy lớp \textit{Car} có diện tích dưới đường cong lớn nhất (0.983), trong khi lớp \textit{Motorbike} thấp hơn đôi chút (0.964) do đặc điểm kích thước nhỏ dễ bị che khuất.
+
+    \subsection*{E. Phân tích Ma trận nhầm lẫn (Confusion Matrix Analysis)}
+Ma trận nhầm lẫn giúp đánh giá chi tiết khả năng phân loại của mô hình trên từng lớp đối tượng cụ thể.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{iamge_finetune/confusion_matrix.png}
+        \caption{Ma trận nhầm lẫn (Số lượng mẫu).}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{iamge_finetune/confusion_matrix_normalized.png}
+        \caption{Ma trận nhầm lẫn chuẩn hóa.}
+    \end{minipage}
+    \label{fig:confusion_matrix}
+\end{figure}
+
+Dựa trên kết quả từ Hình \ref{fig:confusion_matrix}, mô hình đạt tỷ lệ nhận diện đúng cao nhất ở lớp \texttt{Car} và \texttt{Truck} (96\%), theo sau là \texttt{Motorbike} (95\%) và \texttt{Bus} (94\%). Một quan sát quan trọng là tỷ lệ nhầm lẫn giữa các lớp phương tiện với nhau cực kỳ thấp (chỉ khoảng 1\%), chứng minh khả năng phân loại đặc trưng vượt trội của kiến trúc YOLO11s. Tuy nhiên, lớp \texttt{Motorbike} vẫn gặp thách thức lớn nhất khi đối mặt với nhiễu nền (background), chiếm 47\% trong tổng số các lỗi dương tính giả liên quan đến nền.
+\end{enumerate}
+\subsection*{F. Hình ảnh huấn luyện thực tế (Training Samples)}
+Quá trình huấn luyện sử dụng các mẫu ảnh thực tế được trích xuất trực tiếp để kiểm tra tính chính xác của việc gán nhãn và khả năng thích nghi của mô hình.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=1.0\linewidth]{iamge_finetune/train_batch0.jpg}
+    \caption{Mẫu dữ liệu huấn luyện (Training Batch) với các nhãn bounding box đã được chuẩn hóa.}
+    \label{fig:train_batch}
+\end{figure}
+
+Hình \ref{fig:train_batch} minh họa một tập hợp các mẫu ảnh trong quá trình huấn luyện, phản ánh các đặc điểm quan trọng của bộ dữ liệu:
+\begin{itemize}
+    \item \textbf{Góc nhìn thực tế}: Dữ liệu chủ yếu tập trung vào góc nhìn từ camera giám sát tầm cao, đây là kịch bản phổ biến trong các hệ thống ITS.
+    \item \textbf{Sự đa dạng về quy mô}: Các phương tiện được nhận diện chính xác ở nhiều khoảng cách khác nhau, từ các xe tải lớn ngay sát camera đến các phương tiện nhỏ ở xa.
+    \item \textbf{Độ chính xác của nhãn}: Các hộp giới hạn (bounding box) được bao quanh sát biên của đối tượng, giúp mạng nơ-ron học được các đặc trưng hình học chính xác của từng lớp \texttt{bus}, \texttt{car}, \texttt{motorbike} và \texttt{truck}.
+    \item \textbf{Bối cảnh phức tạp}: Hình ảnh bao gồm nhiều loại địa hình giao thông từ cao tốc đến các nút giao đô thị, đảm bảo tính tổng quát hóa cao cho mô hình sau khi huấn luyện.
+\end{itemize}
+
+
+\section*{VI.Ứng dụng và Ý nghĩa thực tiễn}
+
+Mô hình có khả năng tích hợp trực tiếp vào các trung tâm điều hành Giao thông Thông minh (ITS) để phân tích lưu lượng và mật độ xe theo thời gian thực. Các chiến lược quản lý đô thị như tự động hóa chu kỳ đèn tín hiệu hoặc phân luồng giao thông dựa trên dữ liệu phân loại phương tiện này mang lại hiệu quả tối ưu hơn so với việc điều phối thủ công truyền thống. Trong bối cảnh xử lý video từ camera giám sát, việc ưu tiên sự cân bằng giữa độ chính xác (mAP) và tốc độ xử lý (FPS) là một lựa chọn kỹ thuật hợp lý nhằm đảm bảo tính kịp thời và chính xác cho công tác quản lý giao thông đô thị.
+\section*{ THẢO LUẬN VÀ KẾT LUẬN ( DISCUSSION \& CONCLUSION)}
+
+Dựa trên các kết quả thực nghiệm thu được trong quá trình nghiên cứu và triển khai mô hình YOLO11s, chúng tôi đưa ra các nhận định và thảo luận sau:
+
+\begin{itemize}
+    \item \textbf{Sự cân bằng giữa Precision và Recall \cite{Precision-Recall Balance}}: Khác với mô hình gốc (Baseline) vốn không thể nhận diện được đối tượng trong bối cảnh thực tế, mô hình YOLO11s sau khi finetune đã đạt được sự cân bằng lý tưởng giữa Precision (91.99\%) và Recall (92.01\%). Trong bài toán giám sát giao thông, việc tối ưu hóa đồng thời cả hai chỉ số này giúp hệ thống hoạt động tin cậy: không tạo ra các cảnh báo giả gây nhiễu dữ liệu (High Precision) và đồng thời không bỏ sót các phương tiện lưu thông trên đường (High Recall).
+    
+    \item \textbf{Lựa chọn mô hình tối ưu}: Qua quá trình so sánh và đánh giá, chúng tôi xác định mô hình YOLO11s đã qua huấn luyện (Finetuned) là giải pháp tối ưu nhất cho hệ thống. Lý do bao gồm:
+    \begin{enumerate}
+        \item \textbf{Hiệu suất vượt trội}: Đạt chỉ số mAP@0.5 lên tới 95.68\%, thể hiện khả năng nhận diện cực kỳ chính xác trong các điều kiện giao thông phức tạp.
+        \item \textbf{Tính thực tiễn cao}: Với kiến trúc s (small), mô hình đảm bảo tốc độ suy luận nhanh (Inference speed), đáp ứng tốt yêu cầu xử lý video thời gian thực trên các thiết bị có tài nguyên hạn chế.
+        \item \textbf{Khả năng tổng quát hóa}: Mô hình thể hiện sự mạnh mẽ đối với các đối tượng có kích thước đa dạng và các điều kiện ánh sáng, bối cảnh camera khác nhau nhờ vào các module cải tiến như C3k2 và cơ chế chú ý PSA \cite{PSA}.
+    \end{enumerate}
+\end{itemize}
+
+\textbf{Tóm lại}, YOLO11s sau khi được huấn luyện lại trên tập dữ liệu chuyên biệt là giải pháp dung hòa tốt nhất giữa độ chính xác cao và tính khả thi khi triển khai trong môi trường giao thông đô thị thực tế tại Việt Nam.
+
+\subsection*{* Hướng phát triển trong tương lai}
+Trong các nghiên cứu và phát triển tiếp theo, mô hình có thể được cải thiện thông qua các hướng tiếp cận sau:
+\begin{itemize}
+    \item \textbf{Tối ưu hóa ngưỡng quyết định}: Điều chỉnh linh hoạt các ngưỡng Confidence và IoU để tối ưu hóa Recall cho các lớp đối tượng nhỏ (như xe máy) hoặc trong điều kiện tầm nhìn xa.
+    \item \textbf{Tích hợp bài toán theo dõi (Tracking)}: Kết hợp thêm các thuật toán theo dõi đối tượng (như ByteTrack hoặc BoT-SORT) để không chỉ nhận diện mà còn phân tích quỹ đạo và hành vi của phương tiện.
+    \item \textbf{Mở rộng dữ liệu}: Bổ sung các kịch bản giao thông ban đêm, thời tiết xấu (mưa, sương mù) và thêm các lớp đối tượng đặc thù khác để nâng cao tính ổn định toàn diện của hệ thống.
+\end{itemize}
+
+\begin{thebibliography}{00}
+\bibitem{ITS}
+U.S. Department of Transportation, ``Intelligent Transportation Systems (ITS) Benefits, Costs, and Lessons Learned,'' 2024. [Online]. Available: https://www.its.dot.gov/
+\bibitem{mAP} Roboflow, ``Understanding Mean Average Precision (mAP) in Object Detection,'' 2024. [Online]. Available: https://blog.roboflow.com/mean-average-precision/
+ \bibitem{FPS} Ultralytics, ``Real-time Inference Performance and Frames Per Second (FPS) in YOLO11,'' 2024. [Online]. Available: https://docs.ultralytics.com/guides/real-time-video-stream/
+\bibitem{one_stage} J. Redmon, S. Divvala, R. Girshick, and A. Farhadi, ``You Only Look Once: Unified, Real-Time Object Detection,'' in \textit{Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)}, 2016. [Online]. Available: https://arxiv.org/abs/1506.02640
+\bibitem{attention}
+A. Vaswani et al., ``Attention is All You Need,'' in \textit{Advances in Neural Information Processing Systems (NeurIPS)}, 2017. [Online]. Available: https://arxiv.org/abs/1706.03762
+\bibitem{anchor_free}
+Z. Tian, C. Shen, H. Chen, and T. He, ``FCOS: Fully Convolutional One-Stage Object Detection,'' in \textit{Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)}, 2019. [Online]. Available: https://arxiv.org/abs/1904.01355
+\bibitem{letterbox}
+Ultralytics, ``Data Augmentation and Letterbox Preprocessing in YOLO11,'' 2024. [Online]. Available: https://docs.ultralytics.com/ultralytics/data/preprocessing/
+\bibitem{ultralytics_yolo11}
+G. Jocher, A. Chaurasia, and J. Qiu, ``Ultralytics YOLO11: Position-wise Spatial Attention and C2PSA Modules,'' 2024. [Online]. Available: https://github.com/ultralytics/ultralytics
+\bibitem{FPN_PAN}
+T. Y. Lin, P. Dollár, R. Girshick, K. He, B. Hariharan, and S. Belongie, ``Feature Pyramid Networks for Object Detection,'' in \textit{Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)}, 2017. [Online]. Available: https://arxiv.org/abs/1612.03144
+
+\bibitem{Transfer_Learning}
+S. J. Pan and Q. Yang, ``A Survey on Transfer Learning,'' \textit{IEEE Transactions on Knowledge and Data Engineering}, 2010. [Online]. Available: https://ieeexplore.ieee.org/document/5288526
+\bibitem{IoU}
+H. Rezatofighi et al., ``Generalized Intersection over Union: A Metric and a Loss for Bounding Box Regression,'' in \textit{Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)}, 2019. [Online]. Available: https://arxiv.org/abs/1902.09630
+\bibitem{Stratified Sampling} Đảm bảo tính khách quan trong thống kê, tránh việc tập Test quá dễ hoặc quá khó so với tập Train.
+\bibitem{Precision-Recall Balance}
+C. D. Manning, P. Raghavan, and H. Schütze, ``Introduction to Information Retrieval,'' \textit{Cambridge University Press}, 2008. [Online]. Available: https://nlp.stanford.edu/IR-book/
+\bibitem{PSA}
+G. Jocher, A. Chaurasia, and J. Qiu, ``Ultralytics YOLO11: Position-wise Spatial Attention and C2PSA Modules,'' 2024. [Online]. Available: https://github.com/ultralytics/ultralytics
+
+
+\end{thebibliography}
+
+
+\end{document}
